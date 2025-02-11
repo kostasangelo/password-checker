@@ -51,6 +51,7 @@ def index():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
+        email = request.form['email']
         username = request.form['username']
         password = request.form['password']
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -58,31 +59,14 @@ def signup():
         with sqlite3.connect("users.db") as conn:
             cursor = conn.cursor()
             try:
-                cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pw))
+                cursor.execute("INSERT INTO users (email, username, password) VALUES (?, ?, ?)",
+                               (email, username, hashed_pw))
                 conn.commit()
                 return redirect(url_for('login'))
             except sqlite3.IntegrityError:
-                return "Username already exists!"
+                return "Username or Email already exists!"
+
     return render_template('signup.html')
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        with sqlite3.connect("users.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
-            user = cursor.fetchone()
-
-            if user and bcrypt.checkpw(password.encode('utf-8'), user[0]):
-                session['user'] = username
-                return redirect(url_for('dashboard'))
-            else:
-                return "Invalid credentials!"
-    return render_template('login.html')
 
 
 @app.route('/dashboard')
