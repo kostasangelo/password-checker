@@ -5,19 +5,17 @@ import bcrypt
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Needed for session handling
 
-
 def init_db():
     with sqlite3.connect("users.db") as conn:
         cursor = conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                           id INTEGER PRIMARY KEY AUTOINCREMENT,
+                          email TEXT UNIQUE NOT NULL,
                           username TEXT UNIQUE NOT NULL,
                           password TEXT NOT NULL)''')
         conn.commit()
 
-
 init_db()
-
 
 def password_strength(user_input):
     has_upper = any(c.isupper() for c in user_input)
@@ -38,7 +36,6 @@ def password_strength(user_input):
 
     return 'Your password is strong!' if has_upper and has_lower and has_digit and has_symbols else 'Your password is weak!'
 
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -46,7 +43,6 @@ def index():
         result = password_strength(user_input)
         return render_template('index.html', result=result)
     return render_template('index.html', result=None)
-
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -62,25 +58,22 @@ def signup():
                 cursor.execute("INSERT INTO users (email, username, password) VALUES (?, ?, ?)",
                                (email, username, hashed_pw))
                 conn.commit()
-                return redirect(url_for('login'))
+                return redirect(url_for('index'))  # Redirect to login page
             except sqlite3.IntegrityError:
                 return "Username or Email already exists!"
 
     return render_template('signup.html')
 
-
 @app.route('/dashboard')
 def dashboard():
     if 'user' in session:
         return f"Welcome, {session['user']}!"
-    return redirect(url_for('login'))
-
+    return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():
     session.pop('user', None)
-    return redirect(url_for('login'))
-
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)
